@@ -5,7 +5,6 @@ from .models import UserProfile
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
-    # Only create a profile if it doesn't exist and we're not in the registration flow
     if created and not hasattr(instance, 'userprofile'):
         pass  # Do nothing; we'll create the profile in the register view
 

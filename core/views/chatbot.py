@@ -1,5 +1,6 @@
 import requests
 from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from ..models import JobListing
 
 # Expanded list of relevant words
@@ -34,10 +35,14 @@ RELEVANT_WORDS = [
     'facebook', 'amazon', 'apple', 'netflix', 'google', 'microsoft', 'ibm', 'oracle', 'salesforce', 'stripe', 'airbnb', 'uber', 'slack'
 ]
 
+@login_required
 def chatbot(request):
     response = ""
     jobs = JobListing.objects.all()[:5]
     job_context = "\n".join([f"- {job.title} at {job.company}: {job.description}" for job in jobs])
+    
+    user_profile = request.user.userprofile
+    user_context = f"User Profile:\n- Interests: {user_profile.interests}\n- Fields: {user_profile.fields}\n- Experience: {user_profile.experience}\n- Job Preferences: {user_profile.job_preferences}"
 
     if request.method == "POST":
         user_input = request.POST.get('user_input', '').strip().lower()
@@ -46,7 +51,7 @@ def chatbot(request):
         if not any(word in RELEVANT_WORDS for word in prompt_words):
             response = "Sorry, I can’t process that. I’m here to help with job recommendations in the software industry. Please include something about jobs, skills, or software (e.g., 'Python developer job')."
         else:
-            prompt = f"Here are some available jobs:\n{job_context}\n\nBased on the user input: '{user_input}', suggest a suitable job and explain why. If the input is unclear, ask for more details."
+            prompt = f"{user_context}\n\nHere are some available jobs:\n{job_context}\n\nBased on the user input: '{user_input}', suggest a suitable job and explain why. If the input is unclear, ask for more details."
             try:
                 ollama_response = requests.post(
                     'http://localhost:11434/api/generate',

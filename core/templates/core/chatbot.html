@@ -11,7 +11,8 @@
             {% csrf_token %}
             <div class="mb-3">
                 <label for="user_input" class="form-label">Ask for a job recommendation:</label>
-                <input type="text" class="form-control" id="user_input" name="user_input" placeholder="E.g., I’m a software developer">
+                <input type="text" class="form-control" id="user_input" name="user_input" placeholder="E.g., I’m a software developer looking for a remote job">
+                <small class="form-text text-muted">Try asking about your skills, experience, or job preferences. You can also say "hello" or ask "who are you?"</small>
             </div>
             <button type="submit" class="btn btn-primary">Ask</button>
         </form>
