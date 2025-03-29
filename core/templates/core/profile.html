@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Linked AI - Your Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1>Your Profile</h1>
+        {% if messages %}
+            <div class="alert alert-info">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="interests" class="form-label">Interests</label>
+                {{ form.interests }}
+                <small class="form-text text-muted">E.g., AI, web development, cybersecurity</small>
+            </div>
+            <div class="mb-3">
+                <label for="fields" class="form-label">Fields</label>
+                {{ form.fields }}
+                <small class="form-text text-muted">E.g., software engineering, data science</small>
+            </div>
+            <div class="mb-3">
+                <label for="experience" class="form-label">Experience Level</label>
+                {{ form.experience }}
+            </div>
+            <div class="mb-3">
+                <label for="job_preferences" class="form-label">Job Preferences</label>
+                {{ form.job_preferences }}
+                <small class="form-text text-muted">E.g., remote, full-time, startup</small>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Profile</button>
+        </form>
+        <a href="{% url 'job_list' %}" class="btn btn-secondary mt-3">Back to Job Listings</a>
+    </div>
+</body>
+</html>

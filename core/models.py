@@ -13,17 +13,25 @@ class JobListing(models.Model):
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    interests = models.CharField(max_length=200, help_text="E.g., AI, web development, cybersecurity")
-    fields = models.CharField(max_length=200, help_text="E.g., software engineering, data science")
-    experience = models.CharField(max_length=100, choices=[
+    interests = models.CharField(max_length=200, blank=False, help_text="E.g., AI, web development, cybersecurity")
+    fields = models.CharField(max_length=200, blank=False, help_text="E.g., software engineering, data science")
+    experience = models.CharField(max_length=100, blank=False, choices=[
         ('entry-level', 'Entry Level'),
         ('junior', 'Junior'),
         ('mid-level', 'Mid-Level'),
         ('senior', 'Senior'),
         ('lead', 'Lead/Principal'),
     ])
-    job_preferences = models.CharField(max_length=200, help_text="E.g., remote, full-time, startup")
+    job_preferences = models.CharField(max_length=200, blank=False, help_text="E.g., remote, full-time, startup")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
+
+    def is_complete(self):
+        return all([
+            self.interests.strip() != '',
+            self.fields.strip() != '',
+            self.experience.strip() != '',
+            self.job_preferences.strip() != '',
+        ])
