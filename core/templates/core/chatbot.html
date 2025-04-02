@@ -1,189 +1,115 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Linked AI - Chatbot</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        .chat-container {
-            max-width: 800px;
-            margin: 0 auto;
-            height: 70vh;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            background-color: #f8f9fa;
-        }
-        .chat-message {
-            margin-bottom: 15px;
-            max-width: 70%;
-        }
-        .chat-message.user {
-            margin-left: auto;
-            text-align: right;
-        }
-        .chat-message.ai {
-            margin-right: auto;
-            text-align: left;
-        }
-        .chat-message .message-content {
-            display: inline-block;
-            padding: 10px 15px;
-            border-radius: 15px;
-            line-height: 1.5;
-        }
-        .chat-message.user .message-content {
-            background-color: #007bff;
-            color: white;
-        }
-        .chat-message.ai .message-content {
-            background-color: #e9ecef;
-            color: black;
-        }
-        .chat-message.ai .message-content ul {
-            padding-left: 20px;
-            margin: 5px 0;
-        }
-        .chat-message.ai .message-content li {
-            margin-bottom: 5px;
-        }
-        .chat-message.ai .message-content p {
-            margin: 5px 0;
-        }
-        .chat-input {
-            padding: 10px;
-            border-top: 1px solid #ddd;
-            background-color: #fff;
-        }
-        .chat-input form {
-            display: flex;
-            gap: 10px;
-        }
-        .chat-input input {
-            flex: 1;
-            border-radius: 20px;
-        }
-        .typing-indicator {
-            font-style: italic;
-            color: #6c757d;
-        }
-    </style>
-</head>
-<body>
-    <div class="container mt-5">
-        <h1>AI Job Chatbot</h1>
-        <div class="chat-container">
-            <div class="chat-messages" id="chat-messages">
-                <div class="chat-message ai">
-                    <div class="message-content">
-                        Hello! I'm here to help you find a job. What kind of job are you looking for?
-                    </div>
-                </div>
-            </div>
-            <div class="chat-input">
-                <form id="chat-form">
-                    {% csrf_token %}
-                    <input type="text" id="user-input" class="form-control" placeholder="Type your message..." autocomplete="off">
-                    <button type="submit" class="btn btn-primary">Send</button>
-                </form>
+{% extends 'core/base.html' %}
+
+{% block title %}Linked AI - AI Job Chat{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">AI Job Chat</h1>
+    <a href="{% url 'job_list' %}" class="btn btn-outline-primary">
+        <i class="fas fa-briefcase me-1"></i>View All Jobs
+    </a>
+</div>
+
+<div class="chat-container">
+    <div class="chat-messages" id="chat-messages">
+        <div class="chat-message ai">
+            <div class="message-content">
+                <i class="fas fa-robot me-2"></i>Hello! I'm your AI job assistant. I can help you find the perfect job based on your profile and preferences. What kind of job are you looking for?
             </div>
         </div>
-        <a href="{% url 'job_list' %}" class="btn btn-secondary mt-3">Back to Job Listings</a>
     </div>
+    <div class="chat-input">
+        <form id="chat-form">
+            {% csrf_token %}
+            <input type="text" id="user-input" class="form-control" placeholder="Type your message..." autocomplete="off">
+            <button type="submit" class="btn btn-linkedin ms-2">
+                <i class="fas fa-paper-plane me-1"></i>Send
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        const chatMessages = document.getElementById('chat-messages');
-        const chatForm = document.getElementById('chat-form');
-        const userInput = document.getElementById('user-input');
-        const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+{% block extra_js %}
+<script>
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const userInput = document.getElementById('user-input');
+    const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
 
-        function scrollToBottom() {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
+    function scrollToBottom() {
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addMessage(content, sender) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('chat-message', sender);
+        const messageContent = document.createElement('div');
+        messageContent.classList.add('message-content');
+        if (sender === 'user') {
+            messageContent.textContent = content;
+        } else {
+            messageContent.innerHTML = content;
         }
-
-        function addMessage(content, sender) {
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('chat-message', sender);
-            const messageContent = document.createElement('div');
-            messageContent.classList.add('message-content');
-            if (sender === 'user') {
-                messageContent.textContent = content; // User messages are plain text
-            } else {
-                messageContent.innerHTML = content; // AI messages are HTML
-            }
-            messageDiv.appendChild(messageContent);
-            chatMessages.appendChild(messageDiv);
-            scrollToBottom();
-        }
-
-        function addTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.classList.add('chat-message', 'ai', 'typing-indicator');
-            typingDiv.id = 'typing-indicator';
-            typingDiv.textContent = 'AI is typing...';
-            chatMessages.appendChild(typingDiv);
-            scrollToBottom();
-            return typingDiv;
-        }
-
-        function removeTypingIndicator() {
-            const typingDiv = document.getElementById('typing-indicator');
-            if (typingDiv) {
-                typingDiv.remove();
-            }
-        }
-
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const message = userInput.value.trim();
-            if (!message) return;
-
-            addMessage(message, 'user');
-            userInput.value = '';
-
-            const typingDiv = addTypingIndicator();
-
-            try {
-                console.log('Sending AJAX request with message:', message);
-                const response = await fetch(window.location.href, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: new URLSearchParams({
-                        'user_input': message,
-                    }),
-                });
-
-                console.log('Response status:', response.status);
-                console.log('Response ok:', response.ok);
-
-                if (!response.ok) {
-                    throw new Error(`Network response was not ok: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Response data:', data);
-
-                removeTypingIndicator();
-                addMessage(data.response, 'ai');
-            } catch (error) {
-                console.error('Error in AJAX request:', error);
-                removeTypingIndicator();
-                addMessage('Error: Could not connect to the AI service.', 'ai');
-            }
-        });
-
+        messageDiv.appendChild(messageContent);
+        chatMessages.appendChild(messageDiv);
         scrollToBottom();
-    </script>
-</body>
-</html>
+    }
+
+    function addTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.classList.add('chat-message', 'ai', 'typing-indicator');
+        typingDiv.id = 'typing-indicator';
+        typingDiv.innerHTML = '<div class="message-content"><i class="fas fa-robot me-2"></i>AI is typing...</div>';
+        chatMessages.appendChild(typingDiv);
+        scrollToBottom();
+        return typingDiv;
+    }
+
+    function removeTypingIndicator() {
+        const typingDiv = document.getElementById('typing-indicator');
+        if (typingDiv) {
+            typingDiv.remove();
+        }
+    }
+
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        addMessage(message, 'user');
+        userInput.value = '';
+
+        const typingDiv = addTypingIndicator();
+
+        try {
+            const response = await fetch(window.location.href, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: new URLSearchParams({
+                    'user_input': message,
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Network response was not ok: ${response.status}`);
+            }
+
+            const data = await response.json();
+            removeTypingIndicator();
+            addMessage(data.response, 'ai');
+        } catch (error) {
+            console.error('Error in AJAX request:', error);
+            removeTypingIndicator();
+            addMessage('<i class="fas fa-exclamation-circle me-2"></i>Error: Could not connect to the AI service.', 'ai');
+        }
+    });
+
+    scrollToBottom();
+</script>
+{% endblock %}
