@@ -32,7 +32,7 @@ def chatbot(request):
     if request.method == "POST":
         user_input = request.POST.get('user_input', '').strip().lower()
         logger.debug(f"User input: {user_input}")
-        prompt = f" <<DO NOT INCLUDE THINKING PROCESS>> I want this chatbot to communicate with users. answer as you would answer to me.  \n\n this is user's information: {user_context} \n\n this is the job information: {job_context} \n\n\n Here is user prompt: {user_input}\n if its vague or unclear just say 'Sorry, I cannot proceed with that' (just remember to not include thinking process, if the input is somehow vague just discard it), if not you can find appropriate job for user (if user asks for it) and give them a response.. if its vague or unclear just say 'Sorry, I cannot proceed with that'. \n\nAgain <<DO NOT INCLUDE THINKING PROCESS>>\n\n" 
+        prompt = f" <<DO NOT INCLUDE THINKING PROCESS>> I want this chatbot to communicate with users. answer as you would answer to me.  \n\n this is user's information: {user_context} \n\n this is the job information: {job_context} \n\n\n Here is user prompt: {user_input}\n\n you can find appropriate job for user (if user asks for it) and give them a response... \n\nAgain <<DO NOT INCLUDE THINKING PROCESS>>\n\n" 
         try:
             ollama_response = requests.post(
                 'http://localhost:11434/api/generate',
