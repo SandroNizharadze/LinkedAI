@@ -10,22 +10,82 @@
     </a>
 </div>
 
-<div class="chat-container">
-    <div class="chat-messages" id="chat-messages">
-        <div class="chat-message ai">
-            <div class="message-content">
-                <i class="fas fa-robot me-2"></i>Hello! I'm your AI job assistant. I can help you find the perfect job based on your profile and preferences. What kind of job are you looking for?
+<div class="row">
+    <!-- Chat Section -->
+    <div class="col-lg-8">
+        <div class="chat-container">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-message ai">
+                    <div class="message-content">
+                        <i class="fas fa-robot me-2"></i>Hello! I'm your AI job assistant. I can help you:
+                        <ul class="mt-2 mb-0">
+                            <li>Find jobs matching your profile</li>
+                            <li>Get career advice and tips</li>
+                            <li>Prepare for interviews</li>
+                            <li>Plan your career development</li>
+                        </ul>
+                        <p class="mt-2 mb-0">What would you like help with today?</p>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input">
+                <form id="chat-form">
+                    {% csrf_token %}
+                    <input type="text" id="user-input" class="form-control" 
+                           placeholder="Ask about jobs, skills, career advice..." autocomplete="off">
+                    <button type="submit" class="btn btn-linkedin ms-2">
+                        <i class="fas fa-paper-plane me-1"></i>Send
+                    </button>
+                </form>
             </div>
         </div>
     </div>
-    <div class="chat-input">
-        <form id="chat-form">
-            {% csrf_token %}
-            <input type="text" id="user-input" class="form-control" placeholder="Type your message..." autocomplete="off">
-            <button type="submit" class="btn btn-linkedin ms-2">
-                <i class="fas fa-paper-plane me-1"></i>Send
-            </button>
-        </form>
+
+    <!-- Profile & Suggestions Section -->
+    <div class="col-lg-4">
+        <div class="card mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Your Profile</h5>
+            </div>
+            <div class="card-body">
+                <div class="profile-summary">
+                    <p><strong>Interests:</strong> {{ user_profile.interests }}</p>
+                    <p><strong>Fields:</strong> {{ user_profile.fields }}</p>
+                    <p><strong>Experience:</strong> {{ user_profile.get_experience_display }}</p>
+                    <p class="mb-0"><strong>Preferences:</strong> {{ user_profile.job_preferences }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Relevant Jobs</h5>
+            </div>
+            <div class="card-body p-0">
+                {% for job in relevant_jobs %}
+                    <div class="relevant-job {% if not forloop.last %}border-bottom{% endif %} p-3">
+                        <h6 class="mb-1">{{ job.title }}</h6>
+                        <p class="text-muted mb-1">{{ job.company }}</p>
+                        <div class="job-tags">
+                            {% if job.experience %}
+                                <span class="badge bg-light text-dark me-1">
+                                    <i class="fas fa-briefcase me-1"></i>{{ job.get_experience_display }}
+                                </span>
+                            {% endif %}
+                            {% if job.fields %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="fas fa-graduation-cap me-1"></i>{{ job.fields }}
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="p-3 text-center text-muted">
+                        <i class="fas fa-info-circle me-1"></i>No matching jobs found
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -46,11 +106,18 @@
         messageDiv.classList.add('chat-message', sender);
         const messageContent = document.createElement('div');
         messageContent.classList.add('message-content');
+        
         if (sender === 'user') {
             messageContent.textContent = content;
         } else {
             messageContent.innerHTML = content;
+            // Initialize any tooltips in the AI response
+            const tooltips = messageContent.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => {
+                new bootstrap.Tooltip(tooltip);
+            });
         }
+        
         messageDiv.appendChild(messageContent);
         chatMessages.appendChild(messageDiv);
         scrollToBottom();
@@ -60,7 +127,16 @@
         const typingDiv = document.createElement('div');
         typingDiv.classList.add('chat-message', 'ai', 'typing-indicator');
         typingDiv.id = 'typing-indicator';
-        typingDiv.innerHTML = '<div class="message-content"><i class="fas fa-robot me-2"></i>AI is typing...</div>';
+        typingDiv.innerHTML = `
+            <div class="message-content">
+                <div class="typing-animation">
+                    <i class="fas fa-robot me-2"></i>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+        `;
         chatMessages.appendChild(typingDiv);
         scrollToBottom();
         return typingDiv;
@@ -78,6 +154,9 @@
         const message = userInput.value.trim();
         if (!message) return;
 
+        // Disable input while processing
+        userInput.disabled = true;
+        
         addMessage(message, 'user');
         userInput.value = '';
 
@@ -106,10 +185,148 @@
         } catch (error) {
             console.error('Error in AJAX request:', error);
             removeTypingIndicator();
-            addMessage('<i class="fas fa-exclamation-circle me-2"></i>Error: Could not connect to the AI service.', 'ai');
+            addMessage(`
+                <div class="error-message">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Sorry, I encountered an error. Please try again.
+                </div>
+            `, 'ai');
+        } finally {
+            // Re-enable input
+            userInput.disabled = false;
+            userInput.focus();
         }
     });
 
     scrollToBottom();
 </script>
+
+<style>
+.chat-container {
+    height: calc(100vh - 200px);
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-messages {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.chat-message {
+    margin-bottom: 16px;
+    max-width: 80%;
+}
+
+.chat-message.user {
+    margin-left: auto;
+}
+
+.chat-message.ai {
+    margin-right: auto;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.5;
+}
+
+.chat-message.user .message-content {
+    background-color: var(--linkedin-blue);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message.ai .message-content {
+    background-color: var(--linkedin-light-gray);
+    color: rgba(0,0,0,0.9);
+    border-bottom-left-radius: 4px;
+}
+
+.chat-input {
+    padding: 16px;
+    border-top: 1px solid rgba(0,0,0,0.15);
+}
+
+.chat-input form {
+    display: flex;
+    gap: 8px;
+}
+
+.chat-input input {
+    flex: 1;
+    border-radius: 24px;
+    padding: 12px 16px;
+}
+
+.job-recommendation {
+    background-color: var(--linkedin-light-blue);
+    padding: 16px;
+    border-radius: 8px;
+    margin: 8px 0;
+}
+
+.recommendation-details {
+    list-style: none;
+    padding-left: 0;
+    margin: 8px 0;
+}
+
+.recommendation-details li {
+    margin-bottom: 4px;
+}
+
+.typing-animation {
+    display: flex;
+    align-items: center;
+}
+
+.typing-animation .dot {
+    width: 8px;
+    height: 8px;
+    margin: 0 2px;
+    background-color: var(--linkedin-gray);
+    border-radius: 50%;
+    animation: typing 1s infinite ease-in-out;
+}
+
+.typing-animation .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-animation .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-4px); }
+}
+
+.profile-summary p:last-child {
+    margin-bottom: 0;
+}
+
+.relevant-job {
+    transition: background-color 0.2s;
+}
+
+.relevant-job:hover {
+    background-color: var(--linkedin-light-gray);
+    cursor: pointer;
+}
+
+.job-tags {
+    margin-top: 8px;
+}
+
+.error-message {
+    color: #dc3545;
+}
+</style>
 {% endblock %}
