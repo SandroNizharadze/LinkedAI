@@ -15,6 +15,10 @@ urlpatterns = [
     path('employer/jobs/<int:job_id>/edit/', main.edit_job, name='edit_job'),
     path('employer/jobs/<int:job_id>/delete/', main.delete_job, name='delete_job'),
     
+    # Job routes
+    path('jobs/<int:job_id>/', main.job_detail, name='job_detail'),
+    path('jobs/<int:job_id>/apply/', main.apply_job, name='apply_job'),
+    
     # Admin routes
     path('admin/assign-employer/<int:user_id>/', main.assign_employer, name='assign_employer'),
 ]

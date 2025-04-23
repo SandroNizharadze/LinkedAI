@@ -24,14 +24,16 @@
 <div class="card">
     <div class="card-body p-0">
         {% for job in jobs %}
-            <div class="job-card {% if not forloop.last %}border-bottom{% endif %}">
-                <div class="job-title">{{ job.title }}</div>
-                <div class="company-name">{{ job.company }}</div>
-                <div class="job-description">{{ job.description }}</div>
-                <div class="job-meta">
-                    <i class="far fa-clock me-1"></i>Posted on {{ job.posted_at|date:"F j, Y" }}
+            <a href="{% url 'job_detail' job.id %}" class="text-decoration-none">
+                <div class="job-card {% if not forloop.last %}border-bottom{% endif %}">
+                    <div class="job-title">{{ job.title }}</div>
+                    <div class="company-name">{{ job.company }}</div>
+                    <div class="job-description">{{ job.description|truncatewords:30 }}</div>
+                    <div class="job-meta">
+                        <i class="far fa-clock me-1"></i>Posted on {{ job.posted_at|date:"F j, Y" }}
+                    </div>
                 </div>
-            </div>
+            </a>
         {% empty %}
             <div class="job-card text-center text-muted">
                 <i class="fas fa-briefcase fa-2x mb-3"></i>

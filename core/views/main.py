@@ -260,3 +260,44 @@ def assign_employer(request, user_id):
     
     messages.success(request, f"{user_profile.user.get_full_name()} has been assigned as an employer.")
     return JsonResponse({'status': 'success'})
+
+@login_required
+def job_detail(request, job_id):
+    job = get_object_or_404(JobListing, id=job_id)
+    is_employer_user = is_employer(request.user)
+    is_job_owner = is_employer_user and job.employer == request.user.userprofile.employer_profile
+    
+    # Get similar jobs based on fields and interests
+    similar_jobs = JobListing.objects.exclude(id=job_id).filter(
+        fields=job.fields,
+        interests=job.interests
+    ).order_by('-posted_at')[:5]
+    
+    return render(request, 'core/job_detail.html', {
+        'job': job,
+        'is_employer': is_employer_user,
+        'is_job_owner': is_job_owner,
+        'similar_jobs': similar_jobs,
+    })
+
+@login_required
+def apply_job(request, job_id):
+    job = get_object_or_404(JobListing, id=job_id)
+    
+    if request.method == 'POST':
+        cover_letter = request.POST.get('cover_letter', '')
+        resume = request.FILES.get('resume')
+        
+        if not cover_letter or not resume:
+            messages.error(request, "Please provide both a cover letter and resume.")
+            return redirect('job_detail', job_id=job_id)
+        
+        # Here you would typically:
+        # 1. Save the application to a database
+        # 2. Send notifications
+        # 3. Process the resume file
+        
+        messages.success(request, "Your application has been submitted successfully!")
+        return redirect('job_detail', job_id=job_id)
+    
+    return redirect('job_detail', job_id=job_id)
