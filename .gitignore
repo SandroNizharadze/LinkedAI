@@ -25,7 +25,12 @@ wheels/
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-media/
+
+# Media and Static files
+media/*
+!media/.gitkeep
+static/*
+!static/.gitkeep
 staticfiles/
 
 # Virtual Environment
