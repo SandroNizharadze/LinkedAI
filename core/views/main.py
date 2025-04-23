@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, logout
+from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.urls import reverse
@@ -9,6 +9,8 @@ from django.views.decorators.http import require_POST
 from ..models import JobListing, UserProfile, EmployerProfile
 from ..forms import UserProfileForm, EmployerProfileForm, JobListingForm
 import logging
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -37,48 +39,71 @@ def job_list(request):
     })
 
 def login_view(request):
-    redirect_url = reverse('social:begin', kwargs={'backend': 'google-oauth2'})
-    logger.debug(f"Login redirect URL: {request.build_absolute_uri(redirect_url)}")
-    return redirect(redirect_url)
+    if request.user.is_authenticated:
+        return redirect('job_list')
+    
+    if request.method == 'POST':
+        form = AuthenticationForm(request, data=request.POST)
+        if form.is_valid():
+            username = form.cleaned_data.get('username')
+            password = form.cleaned_data.get('password')
+            user = authenticate(username=username, password=password)
+            if user is not None:
+                login(request, user)
+                return redirect('job_list')
+            else:
+                messages.error(request, "Invalid email or password.")
+        else:
+            messages.error(request, "Invalid email or password.")
+    else:
+        form = AuthenticationForm()
+    
+    return render(request, 'core/login.html', {'form': form})
 
 def logout_view(request):
     logout(request)
     return redirect('job_list')
 
 def register(request):
-    if not request.user.is_authenticated:
-        redirect_url = reverse('social:begin', kwargs={'backend': 'google-oauth2'})
-        logger.debug(f"Register redirect URL: {request.build_absolute_uri(redirect_url)}")
-        return redirect(redirect_url)
-
-    try:
-        user_profile = UserProfile.objects.get(user=request.user)
+    if request.user.is_authenticated:
         return redirect('job_list')
-    except UserProfile.DoesNotExist:
-        if request.method == 'POST':
-            form = UserProfileForm(request.POST, request.FILES)
-            if form.is_valid():
-                user_profile = form.save(commit=False)
-                user_profile.user = request.user
-                user_profile.save()
-                return redirect('job_list')
-            else:
-                return render(request, 'core/register.html', {'form': form})
-        else:
-            form = UserProfileForm()
-        return render(request, 'core/register.html', {'form': form})
+    
+    if request.method == 'POST':
+        form = UserProfileForm(request.POST)
+        if form.is_valid():
+            # Create user
+            username = form.cleaned_data.get('email')
+            password = form.cleaned_data.get('password1')
+            user = User.objects.create_user(
+                username=username,
+                email=username,
+                password=password,
+                first_name=form.cleaned_data.get('first_name'),
+                last_name=form.cleaned_data.get('last_name')
+            )
+            
+            # Create user profile with default role
+            user_profile = form.save(commit=False)
+            user_profile.user = user
+            user_profile.role = 'user'  # Set default role to 'user'
+            user_profile.save()
+            
+            # Log the user in with the ModelBackend
+            user.backend = 'django.contrib.auth.backends.ModelBackend'
+            login(request, user)
+            return redirect('job_list')
+    else:
+        form = UserProfileForm()
+    
+    return render(request, 'core/register.html', {'form': form})
 
 @login_required
 def profile(request):
     user_profile = request.user.userprofile
-    user_form = UserProfileForm(instance=user_profile)
-    employer_form = None
     
-    if is_employer(request.user):
-        employer_profile, created = EmployerProfile.objects.get_or_create(user_profile=user_profile)
-        employer_form = EmployerProfileForm(instance=employer_profile)
-        
-        if request.method == 'POST':
+    if request.method == 'POST':
+        if is_employer(request.user):
+            employer_profile, created = EmployerProfile.objects.get_or_create(user_profile=user_profile)
             user_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
             employer_form = EmployerProfileForm(request.POST, request.FILES, instance=employer_profile)
             
@@ -87,13 +112,22 @@ def profile(request):
                 employer_form.save()
                 messages.success(request, "Profile updated successfully!")
                 return redirect('profile')
-    else:
-        if request.method == 'POST':
+            else:
+                messages.error(request, "Please correct the errors below.")
+        else:
             user_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
             if user_form.is_valid():
                 user_form.save()
                 messages.success(request, "Profile updated successfully!")
                 return redirect('profile')
+            else:
+                messages.error(request, "Please correct the errors below.")
+    else:
+        user_form = UserProfileForm(instance=user_profile)
+        employer_form = None
+        if is_employer(request.user):
+            employer_profile, created = EmployerProfile.objects.get_or_create(user_profile=user_profile)
+            employer_form = EmployerProfileForm(instance=employer_profile)
     
     return render(request, 'core/profile.html', {
         'user_form': user_form,
@@ -159,10 +193,11 @@ def post_job(request):
             job.save()
             messages.success(request, "Job posted successfully!")
             return redirect('employer_dashboard')
-    else:
-        form = JobListingForm()
+        else:
+            messages.error(request, "Please correct the errors below.")
+            return redirect('employer_dashboard')
     
-    return render(request, 'core/employer_dashboard.html', {'form': form})
+    return redirect('employer_dashboard')
 
 @login_required
 def edit_job(request, job_id):
@@ -180,7 +215,11 @@ def edit_job(request, job_id):
             form.save()
             messages.success(request, "Job updated successfully!")
             return redirect('employer_dashboard')
+        else:
+            messages.error(request, "Please correct the errors below.")
+            return redirect('employer_dashboard')
     
+    # For GET requests, return job details as JSON
     return JsonResponse({
         'id': job.id,
         'title': job.title,

@@ -35,16 +35,16 @@ class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     role = models.CharField(max_length=10, choices=ROLE_CHOICES, default='user')
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
-    interests = models.CharField(max_length=200, blank=False, help_text="E.g., AI, web development, cybersecurity")
-    fields = models.CharField(max_length=200, blank=False, help_text="E.g., software engineering, data science")
-    experience = models.CharField(max_length=100, blank=False, choices=[
+    interests = models.CharField(max_length=200, blank=True, help_text="E.g., AI, web development, cybersecurity")
+    fields = models.CharField(max_length=200, blank=True, help_text="E.g., software engineering, data science")
+    experience = models.CharField(max_length=100, blank=True, choices=[
         ('entry-level', 'Entry Level'),
         ('junior', 'Junior'),
         ('mid-level', 'Mid-Level'),
         ('senior', 'Senior'),
         ('lead', 'Lead/Principal'),
     ])
-    job_preferences = models.CharField(max_length=200, blank=False, help_text="E.g., remote, full-time, startup")
+    job_preferences = models.CharField(max_length=200, blank=True, help_text="E.g., remote, full-time, startup")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -57,6 +57,28 @@ class UserProfile(models.Model):
             self.experience.strip() != '',
             self.job_preferences.strip() != '',
         ])
+
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        old_instance = None if is_new else UserProfile.objects.get(pk=self.pk)
+        
+        # Save the profile first
+        super().save(*args, **kwargs)
+        
+        # If role was changed to employer or this is a new employer profile
+        if (is_new and self.role == 'employer') or (not is_new and old_instance.role != 'employer' and self.role == 'employer'):
+            # Create employer profile if it doesn't exist
+            from .models import EmployerProfile
+            EmployerProfile.objects.get_or_create(
+                user_profile=self,
+                defaults={
+                    'company_name': f"{self.user.get_full_name()}'s Company",
+                    'company_description': 'Company description not set',
+                    'industry': 'Not specified',
+                    'location': 'Not specified',
+                    'company_size': '1-10'
+                }
+            )
 
 class EmployerProfile(models.Model):
     user_profile = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='employer_profile')

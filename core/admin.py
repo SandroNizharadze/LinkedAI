@@ -38,19 +38,7 @@ class CustomUserAdmin(UserAdmin):
                 profile = UserProfile.objects.create(user=user)
             
             profile.role = 'employer'
-            profile.save()
-            
-            # Create employer profile if it doesn't exist
-            EmployerProfile.objects.get_or_create(
-                user_profile=profile,
-                defaults={
-                    'company_name': f"{user.get_full_name()}'s Company",
-                    'company_description': 'Company description not set',
-                    'industry': 'Not specified',
-                    'location': 'Not specified',
-                    'company_size': '1-10'
-                }
-            )
+            profile.save()  # This will automatically create the EmployerProfile
         
         self.message_user(request, f"Successfully made {queryset.count()} users employers.")
     make_employer.short_description = "Make selected users employers"

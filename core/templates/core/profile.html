@@ -17,6 +17,15 @@
     </div>
 </div>
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
 <div class="profile-section">
     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
         {% csrf_token %}
@@ -32,13 +41,18 @@
                         </div>
                     {% endif %}
                     <div class="profile-picture-overlay">
-                        <label for="id_profile_picture" class="profile-picture-edit">
+                        <label for="{{ user_form.profile_picture.id_for_label }}" class="profile-picture-edit">
                             <i class="fas fa-camera"></i>
                             <span>Change Photo</span>
                         </label>
                     </div>
                 </div>
                 {{ user_form.profile_picture }}
+                {% if user_form.profile_picture.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ user_form.profile_picture.errors|join:", " }}
+                    </div>
+                {% endif %}
             </div>
             <div class="profile-info">
                 <h1>{{ user.get_full_name|default:user.username }}</h1>
@@ -58,66 +72,121 @@
                 <h3 class="h4 mb-3">Company Information</h3>
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Company Name</label>
+                        <label class="form-label" for="{{ employer_form.company_name.id_for_label }}">Company Name</label>
                         {{ employer_form.company_name }}
+                        {% if employer_form.company_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ employer_form.company_name.errors|join:", " }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="col-md-6 mb-3">
-                        <label class="form-label">Company Website</label>
+                        <label class="form-label" for="{{ employer_form.company_website.id_for_label }}">Company Website</label>
                         {{ employer_form.company_website }}
+                        {% if employer_form.company_website.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ employer_form.company_website.errors|join:", " }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Company Description</label>
+                    <label class="form-label" for="{{ employer_form.company_description.id_for_label }}">Company Description</label>
                     {{ employer_form.company_description }}
+                    {% if employer_form.company_description.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ employer_form.company_description.errors|join:", " }}
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Company Logo</label>
+                        <label class="form-label" for="{{ employer_form.company_logo.id_for_label }}">Company Logo</label>
                         {{ employer_form.company_logo }}
+                        {% if employer_form.company_logo.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ employer_form.company_logo.errors|join:", " }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Company Size</label>
+                        <label class="form-label" for="{{ employer_form.company_size.id_for_label }}">Company Size</label>
                         {{ employer_form.company_size }}
+                        {% if employer_form.company_size.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ employer_form.company_size.errors|join:", " }}
+                            </div>
+                        {% endif %}
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Industry</label>
+                        <label class="form-label" for="{{ employer_form.industry.id_for_label }}">Industry</label>
                         {{ employer_form.industry }}
+                        {% if employer_form.industry.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ employer_form.industry.errors|join:", " }}
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Location</label>
+                    <label class="form-label" for="{{ employer_form.location.id_for_label }}">Location</label>
                     {{ employer_form.location }}
+                    {% if employer_form.location.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ employer_form.location.errors|join:", " }}
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         {% endif %}
 
         <div class="mb-4">
-            <label class="form-label">Interests</label>
+            <label class="form-label" for="{{ user_form.interests.id_for_label }}">Interests</label>
             {{ user_form.interests }}
+            {% if user_form.interests.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ user_form.interests.errors|join:", " }}
+                </div>
+            {% endif %}
             <div class="form-text">
                 <i class="fas fa-lightbulb me-1"></i>E.g., AI, web development, cybersecurity
             </div>
         </div>
 
         <div class="mb-4">
-            <label class="form-label">Fields</label>
+            <label class="form-label" for="{{ user_form.fields.id_for_label }}">Fields</label>
             {{ user_form.fields }}
+            {% if user_form.fields.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ user_form.fields.errors|join:", " }}
+                </div>
+            {% endif %}
             <div class="form-text">
                 <i class="fas fa-graduation-cap me-1"></i>E.g., software engineering, data science
             </div>
         </div>
 
         <div class="mb-4">
-            <label class="form-label">Experience Level</label>
+            <label class="form-label" for="{{ user_form.experience.id_for_label }}">Experience Level</label>
             {{ user_form.experience }}
+            {% if user_form.experience.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ user_form.experience.errors|join:", " }}
+                </div>
+            {% endif %}
             <div class="form-text">
                 <i class="fas fa-briefcase me-1"></i>Select your current experience level
             </div>
         </div>
 
         <div class="mb-4">
-            <label class="form-label">Job Preferences</label>
+            <label class="form-label" for="{{ user_form.job_preferences.id_for_label }}">Job Preferences</label>
             {{ user_form.job_preferences }}
+            {% if user_form.job_preferences.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ user_form.job_preferences.errors|join:", " }}
+                </div>
+            {% endif %}
             <div class="form-text">
                 <i class="fas fa-sliders-h me-1"></i>E.g., remote, full-time, startup
             </div>
@@ -245,5 +314,30 @@
             reader.readAsDataURL(this.files[0]);
         }
     });
+
+    // Company logo preview
+    const companyLogoInput = document.getElementById('id_company_logo');
+    if (companyLogoInput) {
+        companyLogoInput.addEventListener('change', function(e) {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.createElement('img');
+                    preview.src = e.target.result;
+                    preview.style.maxWidth = '200px';
+                    preview.style.marginTop = '10px';
+                    preview.className = 'company-logo-preview';
+                    
+                    const existingPreview = document.querySelector('.company-logo-preview');
+                    if (existingPreview) {
+                        existingPreview.remove();
+                    }
+                    
+                    companyLogoInput.parentNode.appendChild(preview);
+                }
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
 </script>
 {% endblock %}

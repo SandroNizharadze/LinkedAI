@@ -11,91 +11,167 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def chatbot(request):
-    logger.debug(f"Request method: {request.method}")
-    logger.debug(f"Request headers: {request.headers}")
+    response = ""
+    user_profile = None
+
+    if 'chat_history' not in request.session:
+        request.session['chat_history'] = []
+    chat_history = request.session['chat_history']
 
     try:
         user_profile = request.user.userprofile
-        if not user_profile.is_complete():
-            messages.warning(request, "You need to complete your profile before accessing the AI chatbot.")
-            return redirect('profile')
+        profile_complete = user_profile.is_complete()
+        missing_fields = []
+        
+        if not user_profile.interests.strip():
+            missing_fields.append("interests")
+        if not user_profile.fields.strip():
+            missing_fields.append("fields")
+        if not user_profile.experience.strip():
+            missing_fields.append("experience level")
+        if not user_profile.job_preferences.strip():
+            missing_fields.append("job preferences")
+            
     except UserProfile.DoesNotExist:
-        messages.warning(request, "You need to create your profile before accessing the AI chatbot.")
+        messages.warning(request, "Please create your profile first.")
+        return redirect('profile')
+    except Exception as e:
+        logger.error(f"Error accessing user profile: {str(e)}")
+        messages.error(request, "An error occurred accessing your profile.")
         return redirect('profile')
 
-    response = ""
-    jobs = JobListing.objects.all()[:5]
-    job_context = "\n".join([f"- {job.title} at {job.company}: {job.description}" for job in jobs])
+    jobs = JobListing.objects.all().order_by('-posted_at')[:5]
+    job_context = "\n".join(
+        f"- {job.title} at {job.company} ({job.get_experience_display()})"
+        for job in jobs
+    )
     
-    user_context = f"User Profile:\n- Interests: {user_profile.interests}\n- Fields: {user_profile.fields}\n- Experience: {user_profile.experience}\n- Job Preferences: {user_profile.job_preferences}"
+    user_context = {
+        'name': user_profile.user.first_name,
+        'interests': user_profile.interests,
+        'fields': user_profile.fields,
+        'experience': user_profile.get_experience_display(),
+        'preferences': user_profile.job_preferences,
+        'profile_complete': profile_complete,
+        'missing_fields': ", ".join(missing_fields) if missing_fields else None
+    }
 
     if request.method == "POST":
-        user_input = request.POST.get('user_input', '').strip().lower()
-        logger.debug(f"User input: {user_input}")
-        prompt = f" <<DO NOT INCLUDE THINKING PROCESS>> I want this chatbot to communicate with users. answer as you would answer to me.  \n\n this is user's information: {user_context} \n\n this is the job information: {job_context} \n\n\n Here is user prompt: {user_input}\n\n you can find appropriate job for user (if user asks for it) and give them a response... \n\nAgain <<DO NOT INCLUDE THINKING PROCESS>>\n\n" 
         try:
+            user_input = request.POST.get('user_input', '').strip()
+            logger.debug(f"User input: {user_input}")
+
+            history_context = "\n".join(
+                f"{'User' if i % 2 == 0 else 'Assistant'}: {msg}"
+                for i, msg in enumerate(chat_history[-4:])  # Last 2 exchanges
+            )
+
+            prompt = f"""You are an AI career assistant. Be natural and conversational in your responses.
+
+Basic context:
+- User's name: {user_context['name']}
+- Experience level: {user_context['experience'] if user_context['experience'] else 'Not specified'}
+- Fields: {user_context['fields'] if user_context['fields'] else 'Not specified'}
+- Profile status: {"Complete" if user_context['profile_complete'] else f"Incomplete - missing {user_context['missing_fields']}"}
+
+Previous conversation:
+{history_context}
+
+User's message: {user_input}
+
+Guidelines:
+1. Keep responses brief and natural
+2. Only mention jobs if specifically asked
+3. For job titles, use bold formatting like this: [Job Title]
+4. Do not greet the user again and again. Only in first response.
+5. Maintain conversation flow based on the chat history
+6. If user asks about jobs and their profile is incomplete, kindly remind them to complete their profile for better recommendations
+
+Available jobs:
+{job_context}
+
+Remember: Be conversational, not overly formal."""
+
             ollama_response = requests.post(
                 'http://localhost:11434/api/generate',
                 json={
                     'model': 'llama3',
                     'prompt': prompt,
                     'stream': False
-                }
+                },
+                timeout=15
             )
             logger.debug(f"Ollama response status: {ollama_response.status_code}")
-            logger.debug(f"Ollama response content: {ollama_response.text}")
-            raw_response = ollama_response.json().get('response', 'Sorry, I couldn’t process that.')
+            raw_response = ollama_response.json().get('response', "Sorry, I couldn't process that.")
 
-            # Format the response as HTML
-            if "Sorry, I cannot proceed with that" in raw_response:
-                response = f"<p>{raw_response}</p>"
-            else:
-                # Split the response into sections
-                lines = raw_response.split('\n')
-                formatted_response = []
-                in_list = False
+            chat_history.append(user_input)
+            chat_history.append(raw_response)
+            request.session['chat_history'] = chat_history[-10:]  
+            request.session.modified = True
 
-                for line in lines:
-                    line = line.strip()
-                    if not line:
-                        continue
+            lines = raw_response.split('\n')
+            formatted_response = []
+            in_list = False
 
-                    # Handle job recommendation (e.g., "**Senior Python Engineer at Windsor.ai**")
-                    if line.startswith("**") and line.endswith("**"):
-                        job_title = line.strip("**")
-                        formatted_response.append(f'<p>Here’s a job that might be a good fit: <strong>{job_title}</strong></p>')
-                    # Handle list items (e.g., "* Interests: AI (mentioned as one of your interests)")
-                    elif line.startswith("*"):
-                        if not in_list:
-                            formatted_response.append('<ul>')
-                            in_list = True
-                        item = line.lstrip("* ").strip()
-                        # Split the item into label and description (e.g., "Interests: AI (mentioned as one of your interests)")
-                        if ":" in item:
-                            label, desc = item.split(":", 1)
-                            formatted_response.append(f'<li><strong>{label.strip()}:</strong> {desc.strip()}</li>')
-                        else:
-                            formatted_response.append(f'<li>{item}</li>')
-                    else:
-                        if in_list:
-                            formatted_response.append('</ul>')
-                            in_list = False
-                        formatted_response.append(f'<p>{line}</p>')
+            for line in lines:
+                line = line.strip()
+                if not line:
+                    continue
 
-                if in_list:
-                    formatted_response.append('</ul>')
+                if '[' in line and ']' in line:
+                    parts = []
+                    current_pos = 0
+                    while True:
+                        start = line.find('[', current_pos)
+                        if start == -1:
+                            parts.append(line[current_pos:])
+                            break
+                        end = line.find(']', start)
+                        if end == -1:
+                            parts.append(line[current_pos:])
+                            break
+                        parts.append(line[current_pos:start])
+                        job_title = line[start+1:end]
+                        parts.append(f'<span class="job-title"><i class="fas fa-briefcase me-2"></i>{job_title}</span>')
+                        current_pos = end + 1
+                    formatted_line = ''.join(parts)
+                    formatted_response.append(f'<p>{formatted_line}</p>')
+                elif line.startswith("*"):
+                    if not in_list:
+                        formatted_response.append('<ul class="list-unstyled mb-3">')
+                        in_list = True
+                    item = line.lstrip("* ").strip()
+                    formatted_response.append(
+                        f'<li class="mb-2">'
+                        f'<i class="fas fa-check-circle text-success me-2"></i>'
+                        f'{item}'
+                        f'</li>'
+                    )
+                else:
+                    if in_list:
+                        formatted_response.append('</ul>')
+                        in_list = False
+                    formatted_response.append(f'<p>{line}</p>')
 
-                response = "".join(formatted_response)
+            if in_list:
+                formatted_response.append('</ul>')
+
+            response = "".join(formatted_response)
 
         except requests.exceptions.RequestException as e:
             logger.error(f"Error connecting to Ollama: {str(e)}")
-            response = "<p>Error connecting to the AI service.</p>"
+            response = '<p class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Sorry, I encountered a connection error. Please try again.</p>'
         except ValueError as e:
-            logger.error(f"Error parsing Ollama response as JSON: {str(e)}")
-            response = "<p>Error: Invalid response from AI service.</p>"
+            logger.error(f"Error parsing Ollama response: {str(e)}")
+            response = '<p class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>Sorry, something went wrong. Please try again.</p>'
+        except Exception as e:
+            logger.error(f"Unexpected error: {str(e)}")
+            response = '<p class="text-danger"><i class="fas fa-exclamation-circle me-2"></i>An unexpected error occurred. Please try again.</p>'
 
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-            logger.debug("Detected AJAX request, returning JSON response")
             return JsonResponse({'response': mark_safe(response)})
 
-    return render(request, 'core/chatbot.html', {'response': response})
+    return render(request, 'core/chatbot.html', {
+        'response': response,
+        'is_first_message': len(chat_history) == 0
+    })
