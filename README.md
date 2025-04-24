@@ -1,6 +1,6 @@
 # LinkedAI - AI-Powered Job Platform
 
-LinkedAI is a modern job platform that leverages artificial intelligence to connect job seekers with employers. The platform provides intelligent job matching, AI-powered career guidance, and a seamless job application process. The project has many features that can be used in real life examples. It may need more advanced technologies to be staged but at this point everything seem fine. Moreover 
+LinkedAI is a modern job platform that leverages artificial intelligence to connect job seekers with employers. The platform provides intelligent job matching, AI-powered career guidance, and a seamless job application process.
 
 <img width="1141" alt="image" src="https://github.com/user-attachments/assets/e2682ced-68cc-4c24-be1d-0861e24e5511" />
 
@@ -151,6 +151,10 @@ python manage.py runserver
 ### AI Integration
 - Career guidance chatbot
 - Job matching algorithm
+
+
+<img width="1053" alt="image" src="https://github.com/user-attachments/assets/2cba8697-8b99-4509-a048-f3499b94f5b4" />
+
 
 
 
