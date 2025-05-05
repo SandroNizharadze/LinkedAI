@@ -156,5 +156,42 @@ python manage.py runserver
 <img width="1053" alt="image" src="https://github.com/user-attachments/assets/2cba8697-8b99-4509-a048-f3499b94f5b4" />
 
 
+## 🚀 Run with Docker
+
+You can run the entire stack (Django, PostgreSQL, Ollama AI) with Docker for easy local development and sharing:
+
+1. **Copy the example environment file:**
+   ```bash
+   cp .env.example .env
+   # Or create your own .env file with the required variables
+   ```
+
+2. **Build and start the services:**
+   ```bash
+   docker-compose up --build
+   ```
+
+3. **Apply migrations and create a superuser (in a new terminal):**
+   ```bash
+   docker-compose exec web python manage.py migrate
+   docker-compose exec web python manage.py createsuperuser
+   ```
+
+4. **Access the app:**
+   - Django app: [http://localhost:8000](http://localhost:8000)
+   - Admin: [http://localhost:8000/admin](http://localhost:8000/admin)
+   - Ollama API: [http://localhost:11434](http://localhost:11434)
+
+5. **Stop the stack:**
+   ```bash
+   docker-compose down
+   ```
+
+**Note:**
+- The first run may take a while as Docker pulls images and builds the containers.
+- Ollama will need to download the llama3 model the first time it runs.
+- All data is persisted in Docker volumes (`postgres_data`, `ollama_data`).
+
+
 
 

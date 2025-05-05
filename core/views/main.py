@@ -193,7 +193,7 @@ def post_job(request):
             job.save()
             messages.success(request, "Job posted successfully!")
             return redirect('employer_dashboard')
-        else:
+    else:
             messages.error(request, "Please correct the errors below.")
             return redirect('employer_dashboard')
     

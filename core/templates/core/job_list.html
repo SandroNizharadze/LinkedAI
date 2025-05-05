@@ -3,43 +3,293 @@
 {% block title %}Linked AI - Job Listings{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2 mb-0">Job Listings</h1>
-    {% if user.is_authenticated %}
-        <a href="{% url 'chatbot' %}" class="btn btn-linkedin">
-            <i class="fas fa-robot me-1"></i>Ask AI for Job Recommendations
-        </a>
-    {% endif %}
-</div>
-
-{% if user.is_authenticated and profile_incomplete %}
-    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-triangle me-2"></i>
-        Please complete your profile to access the AI chatbot. 
-        <a href="{% url 'profile' %}" class="alert-link">Click here to complete your profile</a>.
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Job Listings</h1>
+        {% if user.is_authenticated %}
+            <a href="{% url 'chatbot' %}" class="btn btn-linkedin">
+                <i class="fas fa-robot me-1"></i>Ask AI for Job Recommendations
+            </a>
+        {% endif %}
     </div>
-{% endif %}
 
-<div class="card">
-    <div class="card-body p-0">
-        {% for job in jobs %}
-            <a href="{% url 'job_detail' job.id %}" class="text-decoration-none">
-                <div class="job-card {% if not forloop.last %}border-bottom{% endif %}">
-                    <div class="job-title">{{ job.title }}</div>
-                    <div class="company-name">{{ job.company }}</div>
-                    <div class="job-description">{{ job.description|truncatewords:30 }}</div>
-                    <div class="job-meta">
-                        <i class="far fa-clock me-1"></i>Posted on {{ job.posted_at|date:"F j, Y" }}
+    {% if user.is_authenticated and profile_incomplete %}
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Please complete your profile to access the AI chatbot. 
+            <a href="{% url 'profile' %}" class="alert-link">Click here to complete your profile</a>.
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endif %}
+
+    <!-- Search and Filters Section -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="fas fa-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0" id="searchInput" placeholder="Search jobs...">
                     </div>
                 </div>
-            </a>
+                <div class="col-md-3">
+                    <select class="form-select" id="jobTypeFilter">
+                        <option value="">All Job Types</option>
+                        <option value="full-time">Full Time</option>
+                        <option value="part-time">Part Time</option>
+                        <option value="contract">Contract</option>
+                        <option value="internship">Internship</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="experienceFilter">
+                        <option value="">All Experience Levels</option>
+                        <option value="entry">Entry Level</option>
+                        <option value="mid">Mid Level</option>
+                        <option value="senior">Senior Level</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="btn-group w-100">
+                        <button type="button" class="btn btn-outline-secondary active" data-view="grid">
+                            <i class="fas fa-th-large"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" data-view="list">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Listings -->
+    <div class="row" id="jobListings">
+        {% for job in jobs %}
+            <div class="col-md-6 col-lg-4 mb-4 job-card-container">
+                <div class="card h-100 job-card">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start mb-3">
+                            <div class="company-logo me-3">
+                                {% if job.company_logo %}
+                                    <img src="{{ job.company_logo.url }}" alt="{{ job.company }}" class="rounded">
+                                {% else %}
+                                    <div class="logo-placeholder">
+                                        <i class="fas fa-building"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h5 class="card-title mb-1">{{ job.title }}</h5>
+                                <p class="text-muted mb-2">{{ job.company }}</p>
+                                <div class="d-flex gap-2 mb-2">
+                                    <span class="badge bg-primary">{{ job.job_type }}</span>
+                                    <span class="badge bg-info">{{ job.experience_level }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <p class="card-text text-muted mb-3">{{ job.description|truncatewords:30 }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-muted">
+                                <i class="far fa-clock me-1"></i>
+                                {{ job.posted_at|date:"M d, Y" }}
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'job_detail' job.id %}" class="btn btn-outline-primary btn-sm">
+                                    View Details
+                                </a>
+                                <button class="btn btn-linkedin btn-sm quick-apply" data-job-id="{{ job.id }}">
+                                    Quick Apply
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         {% empty %}
-            <div class="job-card text-center text-muted">
-                <i class="fas fa-briefcase fa-2x mb-3"></i>
-                <p class="mb-0">No jobs available at the moment.</p>
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center py-5">
+                        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No jobs available at the moment</h5>
+                        <p class="text-muted mb-0">Check back later for new opportunities</p>
+                    </div>
+                </div>
             </div>
         {% endfor %}
     </div>
+
+    <!-- Pagination -->
+    {% if jobs.has_other_pages %}
+        <nav aria-label="Job listings pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if jobs.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ jobs.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in jobs.paginator.page_range %}
+                    <li class="page-item {% if jobs.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endfor %}
+                
+                {% if jobs.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ jobs.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
 </div>
+
+<style>
+.company-logo {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.company-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.logo-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+    font-size: 1.5rem;
+}
+
+.job-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.job-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.quick-apply {
+    position: relative;
+    overflow: hidden;
+}
+
+.quick-apply:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.2);
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+}
+
+.quick-apply:hover:after {
+    transform: translateX(100%);
+}
+
+/* List view styles */
+.list-view .job-card-container {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+}
+
+.list-view .job-card {
+    flex-direction: row;
+}
+
+.list-view .job-card .card-body {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+}
+
+.list-view .company-logo {
+    width: 64px;
+    height: 64px;
+}
+
+.list-view .card-text {
+    flex: 1;
+    margin-bottom: 0;
+}
+</style>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const jobListings = document.getElementById('jobListings');
+    const searchInput = document.getElementById('searchInput');
+    const jobTypeFilter = document.getElementById('jobTypeFilter');
+    const experienceFilter = document.getElementById('experienceFilter');
+    const viewButtons = document.querySelectorAll('[data-view]');
+    
+    // View toggle functionality
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            viewButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            jobListings.classList.toggle('list-view', this.dataset.view === 'list');
+        });
+    });
+
+    // Search and filter functionality
+    function filterJobs() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const jobType = jobTypeFilter.value;
+        const experience = experienceFilter.value;
+        
+        document.querySelectorAll('.job-card-container').forEach(card => {
+            const title = card.querySelector('.card-title').textContent.toLowerCase();
+            const company = card.querySelector('.text-muted').textContent.toLowerCase();
+            const jobTypeBadge = card.querySelector('.badge.bg-primary').textContent.toLowerCase();
+            const experienceBadge = card.querySelector('.badge.bg-info').textContent.toLowerCase();
+            
+            const matchesSearch = title.includes(searchTerm) || company.includes(searchTerm);
+            const matchesJobType = !jobType || jobTypeBadge.includes(jobType);
+            const matchesExperience = !experience || experienceBadge.includes(experience);
+            
+            card.style.display = matchesSearch && matchesJobType && matchesExperience ? '' : 'none';
+        });
+    }
+
+    searchInput.addEventListener('input', filterJobs);
+    jobTypeFilter.addEventListener('change', filterJobs);
+    experienceFilter.addEventListener('change', filterJobs);
+
+    // Quick apply functionality
+    document.querySelectorAll('.quick-apply').forEach(button => {
+        button.addEventListener('click', function() {
+            const jobId = this.dataset.jobId;
+            // Implement quick apply logic here
+            console.log('Quick apply for job:', jobId);
+        });
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

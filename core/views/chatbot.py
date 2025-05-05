@@ -73,25 +73,27 @@ Basic context:
 - Experience level: {user_context['experience'] if user_context['experience'] else 'Not specified'}
 - Fields: {user_context['fields'] if user_context['fields'] else 'Not specified'}
 - Profile status: {"Complete" if user_context['profile_complete'] else f"Incomplete - missing {user_context['missing_fields']}"}
+- Is this the first message? {'Yes' if len(chat_history) == 0 else 'No'}
 
-Previous conversation:
+Previous conversation history:
 {history_context}
 
 User's message: {user_input}
 
 Guidelines:
-1. Keep responses brief and natural
-2. Only suggest jobs when explicitly asked about job opportunities
-3. For job titles, use <span class="job-title">Job Title</span> format
-4. Do not repeat or reference the user's message
-5. Maintain conversation flow based on the chat history
-6. If user asks about jobs and their profile is incomplete, kindly remind them to complete their profile for better recommendations
-7. When suggesting jobs, prioritize those that match the user's fields and experience level
+1. Only greet the user (e.g., "Hi!" or "Hello!") in your very first message. For all follow-up responses, do NOT start with a greeting or "Hey!"—just answer naturally.
+2. Keep responses brief and natural
+3. Only suggest jobs when explicitly asked about job opportunities
+4. For job titles, use <span class="job-title">Job Title</span> format (do not use brackets)
+5. Do not repeat or reference the user's name
+6. Maintain conversation flow based on the chat history
+7. If user asks about jobs and their profile is incomplete, kindly remind them to complete their profile for better recommendations
+8. When suggesting jobs, prioritize those that match the user's fields and experience level
 
 Available jobs:
 {job_context}
 
-Remember: Be conversational, not overly formal."""
+Remember: Be conversational, not overly formal, and do not mention the user's name after the first response."""
 
             ollama_response = requests.post(
                 'http://localhost:11434/api/generate',
@@ -119,24 +121,23 @@ Remember: Be conversational, not overly formal."""
                 if not line:
                     continue
 
-                if '[' in line and ']' in line:
-                    parts = []
-                    current_pos = 0
-                    while True:
-                        start = line.find('[', current_pos)
-                        if start == -1:
-                            parts.append(line[current_pos:])
-                            break
-                        end = line.find(']', start)
-                        if end == -1:
-                            parts.append(line[current_pos:])
-                            break
-                        parts.append(line[current_pos:start])
-                        job_title = line[start+1:end]
-                        parts.append(f'<span class="job-title"><i class="fas fa-briefcase me-2"></i>{job_title}</span>')
-                        current_pos = end + 1
-                    formatted_line = ''.join(parts)
-                    formatted_response.append(f'<p>{formatted_line}</p>')
+                if '<span class="job-title">' in line:
+                    # Extract job title from the span
+                    start = line.find('<span class="job-title">') + len('<span class="job-title">')
+                    end = line.find('</span>', start)
+                    if start != -1 and end != -1:
+                        job_title = line[start:end].replace('<i class="fas fa-briefcase me-2"></i>', '').strip()
+                        try:
+                            job = JobListing.objects.get(title=job_title)
+                            job_url = f'/jobs/{job.id}/'
+                            # Replace the span with a link
+                            line = line.replace(
+                                f'<span class="job-title">{job_title}</span>',
+                                f'<a href="{job_url}" class="job-title-link"><span class="job-title"><i class="fas fa-briefcase me-2"></i>{job_title}</span></a>'
+                            )
+                        except JobListing.DoesNotExist:
+                            pass
+                    formatted_response.append(f'<p>{line}</p>')
                 elif line.startswith("*"):
                     if not in_list:
                         formatted_response.append('<ul class="list-unstyled mb-3">')
