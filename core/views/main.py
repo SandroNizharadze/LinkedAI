@@ -5,12 +5,13 @@ from django.contrib import messages
 from django.urls import reverse
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 from ..models import JobListing, UserProfile, EmployerProfile
-from ..forms import UserProfileForm, EmployerProfileForm, JobListingForm
+from ..forms import UserProfileForm, EmployerProfileForm, JobListingForm, RegistrationForm
 import logging
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.db import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -64,36 +65,41 @@ def logout_view(request):
     logout(request)
     return redirect('job_list')
 
+@require_http_methods(["GET", "POST"])
 def register(request):
     if request.user.is_authenticated:
-        return redirect('job_list')
+        return redirect('home')
     
     if request.method == 'POST':
-        form = UserProfileForm(request.POST)
+        form = RegistrationForm(request.POST)
         if form.is_valid():
-            # Create user
-            username = form.cleaned_data.get('email')
-            password = form.cleaned_data.get('password1')
-            user = User.objects.create_user(
-                username=username,
-                email=username,
-                password=password,
-                first_name=form.cleaned_data.get('first_name'),
-                last_name=form.cleaned_data.get('last_name')
-            )
-            
-            # Create user profile with default role
-            user_profile = form.save(commit=False)
-            user_profile.user = user
-            user_profile.role = 'user'  # Set default role to 'user'
-            user_profile.save()
-            
-            # Log the user in with the ModelBackend
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            login(request, user)
-            return redirect('job_list')
+            try:
+                with transaction.atomic():
+                    user = form.save()
+                    
+                    if not UserProfile.objects.filter(user=user).exists():
+                        UserProfile.objects.create(user=user, role='user')
+                    
+                    request.session.save()
+                    
+                    login(request, user)
+                    
+                    messages.success(request, 'Registration successful! You are now logged in.')
+                    
+                    return redirect('home')
+                    
+            except Exception as e:
+                logger.error(f"Error during user registration: {str(e)}")
+                messages.error(request, 'An error occurred during registration. Please try again.')
+                if user and user.id:
+                    user.delete()
+        else:
+            logger.warning(f"Registration form validation failed: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
-        form = UserProfileForm()
+        form = RegistrationForm()
     
     return render(request, 'core/register.html', {'form': form})
 
@@ -219,7 +225,6 @@ def edit_job(request, job_id):
             messages.error(request, "Please correct the errors below.")
             return redirect('employer_dashboard')
     
-    # For GET requests, return job details as JSON
     return JsonResponse({
         'id': job.id,
         'title': job.title,
@@ -255,7 +260,6 @@ def assign_employer(request, user_id):
     user_profile.role = 'employer'
     user_profile.save()
     
-    # Create employer profile
     EmployerProfile.objects.get_or_create(user_profile=user_profile)
     
     messages.success(request, f"{user_profile.user.get_full_name()} has been assigned as an employer.")
@@ -267,7 +271,6 @@ def job_detail(request, job_id):
     is_employer_user = is_employer(request.user)
     is_job_owner = is_employer_user and job.employer == request.user.userprofile.employer_profile
     
-    # Get similar jobs based on fields and interests
     similar_jobs = JobListing.objects.exclude(id=job_id).filter(
         fields=job.fields,
         interests=job.interests
@@ -292,10 +295,6 @@ def apply_job(request, job_id):
             messages.error(request, "Please provide both a cover letter and resume.")
             return redirect('job_detail', job_id=job_id)
         
-        # Here you would typically:
-        # 1. Save the application to a database
-        # 2. Send notifications
-        # 3. Process the resume file
         
         messages.success(request, "Your application has been submitted successfully!")
         return redirect('job_detail', job_id=job_id)

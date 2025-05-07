@@ -14,20 +14,29 @@
                         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
                             {{ message }}
                             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+                        </div>
                     {% endfor %}
                 {% endif %}
 
-    <form method="post" class="needs-validation" novalidate>
-        {% csrf_token %}
-        
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endif %}
+
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
                     <div class="mb-3">
                         <label for="id_email" class="form-label">Email</label>
                         <input type="email" name="email" id="id_email" class="form-control" required>
                         {% if form.email.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.email.errors|join:", " }}
-                        </div>
+                            <div class="invalid-feedback d-block">
+                                {{ form.email.errors|join:", " }}
+                            </div>
                         {% endif %}
                     </div>
                     
@@ -35,46 +44,46 @@
                         <label for="id_password1" class="form-label">Password</label>
                         <input type="password" name="password1" id="id_password1" class="form-control" required>
                         {% if form.password1.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.password1.errors|join:", " }}
-            </div>
+                            <div class="invalid-feedback d-block">
+                                {{ form.password1.errors|join:", " }}
+                            </div>
                         {% endif %}
-        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label for="id_password2" class="form-label">Confirm Password</label>
                         <input type="password" name="password2" id="id_password2" class="form-control" required>
                         {% if form.password2.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.password2.errors|join:", " }}
-            </div>
+                            <div class="invalid-feedback d-block">
+                                {{ form.password2.errors|join:", " }}
+                            </div>
                         {% endif %}
-        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label for="id_first_name" class="form-label">First Name</label>
                         <input type="text" name="first_name" id="id_first_name" class="form-control" required>
                         {% if form.first_name.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.first_name.errors|join:", " }}
-            </div>
+                            <div class="invalid-feedback d-block">
+                                {{ form.first_name.errors|join:", " }}
+                            </div>
                         {% endif %}
-        </div>
+                    </div>
 
                     <div class="mb-3">
                         <label for="id_last_name" class="form-label">Last Name</label>
                         <input type="text" name="last_name" id="id_last_name" class="form-control" required>
                         {% if form.last_name.errors %}
-                        <div class="invalid-feedback">
-                            {{ form.last_name.errors|join:", " }}
-            </div>
+                            <div class="invalid-feedback d-block">
+                                {{ form.last_name.errors|join:", " }}
+                            </div>
                         {% endif %}
-        </div>
+                    </div>
 
                     <div class="d-grid mb-3">
-            <button type="submit" class="btn btn-linkedin">
+                        <button type="submit" class="btn btn-linkedin">
                             <i class="fas fa-user-plus me-1"></i>Sign Up
-            </button>
+                        </button>
                     </div>
                 </form>
 
