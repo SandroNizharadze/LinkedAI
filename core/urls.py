@@ -8,6 +8,7 @@ urlpatterns = [
     path('register/', main.register, name='register'),
     path('profile/', main.profile, name='profile'),
     path('chatbot/', chatbot.chatbot, name='chatbot'),
+    path('chatbot/clear/<str:conversation_id>/', chatbot.clear_conversation, name='clear_conversation'),
     
     # Employer routes
     path('employer/dashboard/', main.employer_dashboard, name='employer_dashboard'),

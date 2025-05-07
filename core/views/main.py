@@ -7,10 +7,14 @@ from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
 from ..models import JobListing, UserProfile, EmployerProfile
-from ..forms import UserProfileForm, EmployerProfileForm, JobListingForm
+from ..forms import UserProfileForm, EmployerProfileForm, JobListingForm, UserRegistrationForm
 import logging
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User
+from django.db import transaction
+from django.db import connection
+from django.utils import timezone
+from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
@@ -65,35 +69,65 @@ def logout_view(request):
     return redirect('job_list')
 
 def register(request):
+    """Handle user registration with profile creation."""
     if request.user.is_authenticated:
         return redirect('job_list')
     
     if request.method == 'POST':
-        form = UserProfileForm(request.POST)
+        form = UserRegistrationForm(request.POST)
         if form.is_valid():
-            # Create user
-            username = form.cleaned_data.get('email')
-            password = form.cleaned_data.get('password1')
-            user = User.objects.create_user(
-                username=username,
-                email=username,
-                password=password,
-                first_name=form.cleaned_data.get('first_name'),
-                last_name=form.cleaned_data.get('last_name')
-            )
-            
-            # Create user profile with default role
-            user_profile = form.save(commit=False)
-            user_profile.user = user
-            user_profile.role = 'user'  # Set default role to 'user'
-            user_profile.save()
-            
-            # Log the user in with the ModelBackend
-            user.backend = 'django.contrib.auth.backends.ModelBackend'
-            login(request, user)
-            return redirect('job_list')
+            user = None
+            try:
+                # Create the user account in a transaction
+                with transaction.atomic():
+                    user = form.save()
+                    
+                    # Check if there are any existing profiles for this user
+                    UserProfile.objects.filter(user_id=user.id).delete()
+                    
+                    # Create a basic user profile with default values
+                    profile = UserProfile(
+                        user=user,
+                        role='user',
+                        created_at=timezone.now()
+                    )
+                    
+                    # Set a flag to indicate this is being created during registration
+                    profile._in_registration = True
+                    
+                    # Save the profile
+                    profile.save()
+                
+                # Explicitly set the Django ModelBackend for login
+                # This backend is used for username/password authentication
+                user.backend = 'django.contrib.auth.backends.ModelBackend'
+                
+                try:
+                    # Attempt to login the user with the specified backend
+                    login(request, user)
+                    messages.success(request, "Registration successful! Welcome to Linked AI.")
+                    return redirect('job_list')
+                except Exception as login_error:
+                    logger.error(f"Login error after registration: {str(login_error)}")
+                    messages.warning(request, "Your account was created, but we couldn't log you in automatically. Please log in with your credentials.")
+                    return redirect('login')
+                
+            except Exception as e:
+                logger.error(f"Registration error: {str(e)}")
+                # Clean up if there was an error
+                if user and user.id:
+                    try:
+                        User.objects.filter(id=user.id).delete()
+                        logger.info(f"Cleaned up user {user.id} after registration error")
+                    except Exception as delete_error:
+                        logger.error(f"Failed to clean up user: {str(delete_error)}")
+                messages.error(request, f"Registration error: {str(e)}")
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
-        form = UserProfileForm()
+        form = UserRegistrationForm()
     
     return render(request, 'core/register.html', {'form': form})
 

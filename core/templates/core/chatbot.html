@@ -3,55 +3,116 @@
 {% block title %}Linked AI - AI Chat{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h2 mb-0">AI Chat Assistant</h1>
-    <a href="{% url 'job_list' %}" class="btn btn-outline-primary">
-        <i class="fas fa-briefcase me-1"></i>View Jobs
-    </a>
+<div class="page-header mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="h2 mb-0">AI Chat Assistant</h1>
+        <a href="{% url 'job_list' %}" class="btn-job-list">
+            <i class="fas fa-briefcase me-2"></i>View Jobs
+        </a>
+    </div>
 </div>
 
-<div class="chat-container">
-    <div class="chat-messages" id="chatMessages">
-        {% if is_first_message %}
-        <div class="chat-message ai">
-            <div class="message-content">
-                <p>👋 Hi! I'm your AI assistant. I can help you with:</p>
-                <ul class="suggestion-list">
-                    <li>Finding jobs that match your profile</li>
-                    <li>Career advice and guidance</li>
-                    <li>Resume and interview tips</li>
-                    <li>Industry insights and trends</li>
+<div class="row">
+    <!-- Conversations sidebar -->
+    <div class="col-md-3 mb-3 mb-md-0">
+        <div class="conversations-sidebar">
+            <div class="sidebar-header">
+                <h5>Conversations</h5>
+                <a href="{% url 'chatbot' %}?new_chat=1" class="new-chat-btn" id="newChatBtn">
+                    <i class="fas fa-plus"></i>
+                </a>
+            </div>
+            
+            <div class="sidebar-content">
+                {% if conversations %}
+                <ul class="conversation-list">
+                    {% for conv in conversations %}
+                    <li class="conversation-item {% if conv.is_active %}active{% endif %}">
+                        <a href="{% url 'chatbot' %}?conversation_id={{ conv.id }}" class="conversation-link">
+                            <div class="conversation-info">
+                                <span class="conversation-name">{{ conv.name }}</span>
+                                <span class="conversation-time">{{ conv.created_at }}</span>
+                            </div>
+                        </a>
+                        <a href="{% url 'clear_conversation' conv.id %}" 
+                           class="delete-btn"
+                           onclick="return confirm('Are you sure you want to delete this conversation?');">
+                            <i class="fas fa-trash-alt"></i>
+                        </a>
+                    </li>
+                    {% endfor %}
                 </ul>
-                <p>What would you like to know?</p>
+                {% else %}
+                <div class="empty-state">
+                    <p>No conversations yet</p>
+                    <a href="{% url 'chatbot' %}?new_chat=1" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i>Start a new chat
+                    </a>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
-        {% if response %}
-            <div class="chat-message user">
-                <div class="message-content">
-                    {{ user_input }}
-                </div>
-            </div>
-            <div class="chat-message ai">
-                <div class="message-content">
-                    {{ response|safe }}
-                </div>
-            </div>
-        {% endif %}
     </div>
     
-    <div class="chat-input">
-        <form method="post" id="chatForm" class="needs-validation" novalidate>
-            {% csrf_token %}
-            <div class="input-group">
-                <input type="text" name="user_input" id="userInput" class="form-control" 
-                       placeholder="Type your message here..." required
-                       autocomplete="off">
-                <button type="submit" class="btn btn-linkedin">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+    <!-- Chat area -->
+    <div class="col-md-9">
+        <div class="chat-container">
+            <div class="chat-messages" id="chatMessages">
+                {% if is_first_message or is_new_chat %}
+                <div class="chat-message ai">
+                    <div class="message-content">
+                        <p>👋 Hi! I'm your AI assistant. I can help you with:</p>
+                        <ul class="suggestion-list">
+                            <li>Finding jobs that match your profile</li>
+                            <li>Career advice and guidance</li>
+                            <li>Resume and interview tips</li>
+                            <li>Industry insights and trends</li>
+                        </ul>
+                        <p>What would you like to know?</p>
+                    </div>
+                </div>
+                {% else %}
+                    {% for message in chat_history %}
+                    <div class="chat-message {{ message.role }}">
+                        <div class="message-content">
+                            {% if message.role == 'user' %}
+                                {{ message.content }}
+                            {% else %}
+                                {{ message.content|safe }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% if response and is_new_chat %}
+                    <div class="chat-message user">
+                        <div class="message-content">
+                            {{ user_input }}
+                        </div>
+                    </div>
+                    <div class="chat-message ai">
+                        <div class="message-content">
+                            {{ response|safe }}
+                        </div>
+                    </div>
+                {% endif %}
             </div>
-        </form>
+            
+            <div class="chat-input">
+                <form method="post" id="chatForm" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    <input type="hidden" name="conversation_id" value="{{ conversation_id }}">
+                    <div class="input-group">
+                        <input type="text" name="user_input" id="userInput" class="form-control" 
+                               placeholder="Type your message here..." required
+                               autocomplete="off">
+                        <button type="submit" class="send-btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -60,7 +121,7 @@
     height: calc(100vh - 200px);
     background-color: white;
     border-radius: 12px;
-    box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -87,9 +148,10 @@
 }
 
 .message-content {
-    padding: 12px 16px;
+    padding: 14px 18px;
     border-radius: 12px;
     line-height: 1.5;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .chat-message.user .message-content {
@@ -101,34 +163,48 @@
 .chat-message.ai .message-content {
     background-color: white;
     color: #1a1a1a;
-    border: 1px solid rgba(0,0,0,0.1);
+    border: 1px solid rgba(0, 0, 0, 0.08);
     border-bottom-left-radius: 4px;
 }
 
 .chat-input {
     padding: 16px;
     background-color: white;
-    border-top: 1px solid rgba(0,0,0,0.1);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .chat-input .input-group {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    border-radius: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    border-radius: 30px;
     overflow: hidden;
+    background-color: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .chat-input input {
     border: none;
-    padding: 12px 20px;
+    padding: 14px 20px;
+    background-color: transparent;
 }
 
 .chat-input input:focus {
     box-shadow: none;
+    outline: none;
 }
 
-.chat-input .btn {
+.send-btn {
+    background-color: var(--linkedin-blue);
+    color: white;
+    border: none;
     padding: 0 20px;
-    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.send-btn:hover {
+    background-color: #004182;
 }
 
 .suggestion-list {
@@ -138,17 +214,19 @@
 }
 
 .suggestion-list li {
-    margin-bottom: 8px;
-    padding-left: 24px;
+    margin-bottom: 10px;
+    padding-left: 28px;
     position: relative;
 }
 
 .suggestion-list li:before {
-    content: "•";
+    content: "\f00c";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
     color: var(--linkedin-blue);
-    font-size: 1.2em;
     position: absolute;
-    left: 8px;
+    left: 0;
+    font-size: 0.9rem;
 }
 
 .message-content p:last-child {
@@ -193,17 +271,365 @@
 .job-title {
     color: var(--linkedin-blue);
     font-weight: 600;
-    background-color: var(--linkedin-light-blue);
-    padding: 4px 8px;
+    background-color: rgba(0, 119, 181, 0.1);
+    padding: 4px 10px;
     border-radius: 4px;
     display: inline-flex;
     align-items: center;
     margin: 0 2px;
+    transition: all 0.2s ease;
 }
 
 .job-title i {
     color: var(--linkedin-blue);
     opacity: 0.8;
+    margin-right: 6px;
+}
+
+.job-title-link {
+    text-decoration: none !important;
+    position: relative;
+}
+
+.job-title-link:hover .job-title {
+    background-color: rgba(0, 119, 181, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.job-title-link:after {
+    content: "\f35d";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: 10px;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    color: var(--linkedin-blue);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.job-title-link:hover:after {
+    opacity: 1;
+}
+
+/* Conversation list styling */
+.conversation-list .list-group-item {
+    padding: 12px 15px;
+    border-left: 0;
+    border-right: 0;
+    position: relative;
+    border-radius: 0;
+    transition: background-color 0.2s ease;
+}
+
+.conversation-list .list-group-item:hover:not(.active) {
+    background-color: #f8f9fa;
+}
+
+.conversation-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    padding-right: 24px;
+}
+
+.conversation-info {
+    flex: 1;
+    max-width: calc(100% - 36px);
+    overflow: hidden;
+}
+
+.conversation-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    line-height: 1.3;
+}
+
+.conversation-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+    line-height: 1.2;
+}
+
+.list-group-item.active {
+    background-color: #0A66C2 !important; /* LinkedIn blue, slightly darker for better contrast */
+    border-color: #0A66C2 !important;
+    color: white !important;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    z-index: 2;
+    border-left: 4px solid #004182 !important; /* Darker accent for visual interest */
+}
+
+.list-group-item.active .conversation-name {
+    color: white !important;
+    font-weight: 600 !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.list-group-item.active .conversation-time {
+    color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.list-group-item.active .delete-btn {
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    opacity: 0.8;
+}
+
+.list-group-item.active .delete-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    opacity: 1;
+}
+
+.card-header .btn-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#newChatBtn.disabled {
+    opacity: 0.5;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.delete-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    padding: 0;
+    position: absolute;
+    right: 4px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(108, 117, 125, 0.5);
+    background-color: transparent;
+}
+
+.delete-btn:hover {
+    background-color: rgba(108, 117, 125, 0.1);
+    opacity: 1;
+}
+
+.list-group-item.active .delete-btn {
+    color: white !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    opacity: 0.8;
+}
+
+/* New Conversation Sidebar Styling */
+.conversations-sidebar {
+    background-color: #f8f9fa;
+    border-radius: 12px;
+    height: calc(100vh - 200px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.sidebar-header {
+    background-color: white;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-header h5 {
+    margin: 0;
+    font-weight: 600;
+    color: #333;
+}
+
+.new-chat-btn {
+    width: 32px;
+    height: 32px;
+    background-color: var(--linkedin-blue);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.new-chat-btn:hover {
+    background-color: #004182;
+    color: white;
+    transform: scale(1.05);
+}
+
+.new-chat-btn.disabled {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 0;
+}
+
+.conversation-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.conversation-item {
+    position: relative;
+    transition: all 0.2s ease;
+    margin: 2px 8px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.conversation-link {
+    display: block;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    position: relative;
+}
+
+.conversation-item:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.conversation-item.active {
+    background-color: var(--linkedin-blue);
+}
+
+.conversation-item.active .conversation-link {
+    color: white;
+}
+
+.conversation-info {
+    display: flex;
+    flex-direction: column;
+    padding-right: 36px; /* Space for delete button */
+}
+
+.conversation-name {
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-time {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
+.conversation-item.active .conversation-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.delete-btn {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    color: #dc3545;
+    background-color: transparent;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    z-index: 2;
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    background-color: rgba(220, 53, 69, 0.1);
+}
+
+.conversation-item.active .delete-btn {
+    color: white;
+}
+
+.conversation-item.active .delete-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 32px 16px;
+    color: #6c757d;
+}
+
+.page-header {
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.btn-job-list {
+    background-color: white;
+    color: var(--linkedin-blue);
+    border: 1px solid var(--linkedin-blue);
+    border-radius: 30px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-job-list:hover {
+    background-color: var(--linkedin-blue);
+    color: white;
+    text-decoration: none;
+}
+
+/* Responsive tweaks */
+@media (max-width: 767.98px) {
+    .conversations-sidebar, 
+    .chat-container {
+        height: calc(50vh - 100px);
+        margin-bottom: 16px;
+    }
+    
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .page-header h1 {
+        margin-bottom: 12px;
+    }
+    
+    .chat-message {
+        max-width: 90%;
+    }
 }
 </style>
 
@@ -215,6 +641,27 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatForm = document.getElementById('chatForm');
     const chatMessages = document.getElementById('chatMessages');
     const userInput = document.getElementById('userInput');
+    const conversationId = document.querySelector('input[name="conversation_id"]').value;
+
+    // Prevent multiple rapid clicks on the new chat button
+    const newChatBtn = document.getElementById('newChatBtn');
+    if (newChatBtn) {
+        let isButtonDisabled = false;
+        newChatBtn.addEventListener('click', function(e) {
+            if (isButtonDisabled) {
+                e.preventDefault();
+                return false;
+            }
+            
+            // Disable the button temporarily
+            isButtonDisabled = true;
+            newChatBtn.classList.add('disabled');
+            setTimeout(() => {
+                isButtonDisabled = false;
+                newChatBtn.classList.remove('disabled');
+            }, 2000); // 2 seconds cooldown
+        });
+    }
 
     // Scroll to bottom of chat
     function scrollToBottom() {
@@ -273,7 +720,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: new URLSearchParams({
-                    'user_input': message
+                    'user_input': message,
+                    'conversation_id': conversationId
                 })
             });
 
@@ -281,6 +729,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Remove loading animation
             loadingDiv.remove();
+
+            // Update conversation ID if it changed
+            if (data.conversation_id && data.conversation_id !== conversationId) {
+                document.querySelector('input[name="conversation_id"]').value = data.conversation_id;
+            }
 
             // Add AI response
             const aiMessageDiv = document.createElement('div');

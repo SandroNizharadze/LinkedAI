@@ -4,13 +4,27 @@ from .models import UserProfile, EmployerProfile, JobListing
 from django.contrib.auth.forms import UserCreationForm
 from django.core.files.uploadedfile import UploadedFile
 
-class UserRegistrationForm(UserCreationForm):
-    """Form for user registration using Django's built-in UserCreationForm."""
+class UserRegistrationForm(forms.Form):
+    """Form for user registration that includes all required user fields."""
     email = forms.EmailField(
         required=True,
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter email address'
+        })
+    )
+    password1 = forms.CharField(
+        label='Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter password'
+        })
+    )
+    password2 = forms.CharField(
+        label='Confirm Password',
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm password'
         })
     )
     first_name = forms.CharField(
@@ -28,20 +42,47 @@ class UserRegistrationForm(UserCreationForm):
         })
     )
     
-    class Meta:
-        model = User
-        fields = ['email', 'first_name', 'last_name', 'password1', 'password2']
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Remove username field - we'll use email as username
-        if 'username' in self.fields:
-            del self.fields['username']
-            
-        # Override help_text that comes with Django's UserCreationForm
-        for field_name in ['password1', 'password2']:
-            if field_name in self.fields:
-                self.fields[field_name].help_text = None
+    # Add profile fields - all optional
+    profile_picture = forms.ImageField(
+        required=False,
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'image/*'
+        })
+    )
+    interests = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'E.g., AI, web development, cybersecurity'
+        })
+    )
+    fields = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'E.g., software engineering, data science'
+        })
+    )
+    experience = forms.ChoiceField(
+        required=False,
+        choices=[
+            ('', 'Select experience level'),
+            ('entry-level', 'Entry Level'),
+            ('junior', 'Junior'),
+            ('mid-level', 'Mid-Level'),
+            ('senior', 'Senior'),
+            ('lead', 'Lead/Principal'),
+        ],
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    job_preferences = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'E.g., remote, full-time, startup'
+        })
+    )
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -49,17 +90,22 @@ class UserRegistrationForm(UserCreationForm):
             raise forms.ValidationError("A user with that email already exists.")
         return email
     
-    def save(self, commit=True):
-        # Save the User instance first using UserCreationForm's save
-        user = super().save(commit=False)
-        user.email = self.cleaned_data.get('email')
-        # Use email as username
-        user.username = self.cleaned_data.get('email')
-        
-        if commit:
-            user.save()
-            
-        return user
+    def clean_password2(self):
+        password1 = self.cleaned_data.get('password1')
+        password2 = self.cleaned_data.get('password2')
+        if password1 and password2 and password1 != password2:
+            raise forms.ValidationError("Passwords don't match")
+        return password2
+    
+    def clean_profile_picture(self):
+        profile_picture = self.cleaned_data.get('profile_picture')
+        # Only validate if a new file is being uploaded
+        if profile_picture and isinstance(profile_picture, UploadedFile):
+            if profile_picture.size > 5 * 1024 * 1024:  # 5MB limit
+                raise forms.ValidationError("Image file too large ( > 5MB )")
+            if not profile_picture.content_type.startswith('image/'):
+                raise forms.ValidationError("File is not an image")
+        return profile_picture
 
 class UserProfileForm(forms.ModelForm):
     class Meta:

@@ -59,14 +59,25 @@ class UserProfile(models.Model):
         ])
 
     def save(self, *args, **kwargs):
+        # If force_insert is True, we're creating a new profile without triggering additional logic
+        force_insert = kwargs.pop('force_insert', False)
+        if force_insert:
+            return super().save(*args, **kwargs)
+            
         is_new = self.pk is None
         old_instance = None if is_new else UserProfile.objects.get(pk=self.pk)
+        
+        # Before saving, check if there's already a profile for this user
+        if is_new and UserProfile.objects.filter(user_id=self.user_id).exists():
+            # If we're in registration context, delete existing profile to avoid duplicates
+            if getattr(self, '_in_registration', False):
+                UserProfile.objects.filter(user_id=self.user_id).delete()
         
         # Save the profile first
         super().save(*args, **kwargs)
         
         # If role was changed to employer or this is a new employer profile
-        if (is_new and self.role == 'employer') or (not is_new and old_instance.role != 'employer' and self.role == 'employer'):
+        if (is_new and self.role == 'employer') or (not is_new and old_instance and old_instance.role != 'employer' and self.role == 'employer'):
             # Create employer profile if it doesn't exist
             from .models import EmployerProfile
             EmployerProfile.objects.get_or_create(
