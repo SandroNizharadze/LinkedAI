@@ -5,10 +5,10 @@
 {% block content %}
 <div class="page-header mb-4">
     <div class="d-flex justify-content-between align-items-center">
-        <h1 class="h2 mb-0">AI Chat Assistant</h1>
+    <h1 class="h2 mb-0">AI Chat Assistant</h1>
         <a href="{% url 'job_list' %}" class="btn-job-list">
             <i class="fas fa-briefcase me-2"></i>View Jobs
-        </a>
+    </a>
     </div>
 </div>
 
@@ -56,21 +56,21 @@
     
     <!-- Chat area -->
     <div class="col-md-9">
-        <div class="chat-container">
-            <div class="chat-messages" id="chatMessages">
+<div class="chat-container">
+    <div class="chat-messages" id="chatMessages">
                 {% if is_first_message or is_new_chat %}
-                <div class="chat-message ai">
-                    <div class="message-content">
-                        <p>👋 Hi! I'm your AI assistant. I can help you with:</p>
-                        <ul class="suggestion-list">
-                            <li>Finding jobs that match your profile</li>
-                            <li>Career advice and guidance</li>
-                            <li>Resume and interview tips</li>
-                            <li>Industry insights and trends</li>
-                        </ul>
-                        <p>What would you like to know?</p>
-                    </div>
-                </div>
+        <div class="chat-message ai">
+            <div class="message-content">
+                <p>👋 Hi! I'm your AI assistant. I can help you with:</p>
+                <ul class="suggestion-list">
+                    <li>Finding jobs that match your profile</li>
+                    <li>Career advice and guidance</li>
+                    <li>Resume and interview tips</li>
+                    <li>Industry insights and trends</li>
+                </ul>
+                <p>What would you like to know?</p>
+            </div>
+        </div>
                 {% else %}
                     {% for message in chat_history %}
                     <div class="chat-message {{ message.role }}">
@@ -83,34 +83,34 @@
                         </div>
                     </div>
                     {% endfor %}
-                {% endif %}
+        {% endif %}
                 {% if response and is_new_chat %}
-                    <div class="chat-message user">
-                        <div class="message-content">
-                            {{ user_input }}
-                        </div>
-                    </div>
-                    <div class="chat-message ai">
-                        <div class="message-content">
-                            {{ response|safe }}
-                        </div>
-                    </div>
-                {% endif %}
+            <div class="chat-message user">
+                <div class="message-content">
+                    {{ user_input }}
+                </div>
             </div>
-            
-            <div class="chat-input">
-                <form method="post" id="chatForm" class="needs-validation" novalidate>
-                    {% csrf_token %}
+            <div class="chat-message ai">
+                <div class="message-content">
+                    {{ response|safe }}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="chat-input">
+        <form method="post" id="chatForm" class="needs-validation" novalidate>
+            {% csrf_token %}
                     <input type="hidden" name="conversation_id" value="{{ conversation_id }}">
-                    <div class="input-group">
-                        <input type="text" name="user_input" id="userInput" class="form-control" 
-                               placeholder="Type your message here..." required
-                               autocomplete="off">
+            <div class="input-group">
+                <input type="text" name="user_input" id="userInput" class="form-control" 
+                       placeholder="Type your message here..." required
+                       autocomplete="off">
                         <button type="submit" class="send-btn">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </div>
-                </form>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </form>
             </div>
         </div>
     </div>

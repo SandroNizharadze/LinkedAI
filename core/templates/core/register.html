@@ -4,10 +4,10 @@
 
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-md-8 col-lg-6">
-        <div class="card shadow-sm">
+    <div class="col-md-6 col-lg-5">
+        <div class="card">
             <div class="card-body p-4">
-                <h2 class="text-center mb-4">Create an Account</h2>
+                <h2 class="text-center mb-4">Sign Up</h2>
                 
                 {% if messages %}
                     {% for message in messages %}
@@ -21,64 +21,70 @@
                 <form method="post" class="needs-validation" novalidate>
                     {% csrf_token %}
                     
-                    <div class="card mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0">Account Information</h5>
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                        {{ form.email }}
+                        <div class="invalid-feedback">
+                            Please enter a valid email address.
                         </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
-                                {{ form.email }}
-                                <small class="text-muted">Your email will be used as your login username</small>
-                                {% if form.email.errors %}
-                                <div class="text-danger">
-                                    {{ form.email.errors|join:", " }}
-                                </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
-                                    {{ form.first_name }}
-                                    {% if form.first_name.errors %}
-                                    <div class="text-danger">
-                                        {{ form.first_name.errors|join:", " }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
-                                    {{ form.last_name }}
-                                    {% if form.last_name.errors %}
-                                    <div class="text-danger">
-                                        {{ form.last_name.errors|join:", " }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
-                                    {{ form.password1 }}
-                                    {% if form.password1.errors %}
-                                    <div class="text-danger">
-                                        {{ form.password1.errors|join:", " }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
-                                    {{ form.password2 }}
-                                    {% if form.password2.errors %}
-                                    <div class="text-danger">
-                                        {{ form.password2.errors|join:", " }}
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
+                        {% if form.email.errors %}
+                        <div class="text-danger">
+                            {{ form.email.errors|join:", " }}
                         </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name</label>
+                            {{ form.first_name }}
+                        <div class="invalid-feedback">
+                                Please enter your first name.
+                            </div>
+                            {% if form.first_name.errors %}
+                            <div class="text-danger">
+                                {{ form.first_name.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name</label>
+                            {{ form.last_name }}
+                        <div class="invalid-feedback">
+                                Please enter your last name.
+                            </div>
+                            {% if form.last_name.errors %}
+                            <div class="text-danger">
+                                {{ form.last_name.errors|join:", " }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password1.id_for_label }}" class="form-label">Password</label>
+                        <input type="password" name="password1" id="{{ form.password1.id_for_label }}" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please enter a password.
+                        </div>
+                        {% if form.password1.errors %}
+                        <div class="text-danger">
+                            {{ form.password1.errors|join:", " }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.password2.id_for_label }}" class="form-label">Confirm Password</label>
+                        <input type="password" name="password2" id="{{ form.password2.id_for_label }}" class="form-control" required>
+                        <div class="invalid-feedback">
+                            Please confirm your password.
+                        </div>
+                        {% if form.password2.errors %}
+                        <div class="text-danger">
+                            {{ form.password2.errors|join:", " }}
+                        </div>
+                        {% endif %}
                     </div>
                     
                     <div class="d-grid mb-3">
@@ -124,4 +130,4 @@
         })
     })()
 </script>
-{% endblock %} 
+{% endblock %}
