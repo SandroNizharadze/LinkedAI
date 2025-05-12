@@ -12,7 +12,8 @@ services:
       - .env
     depends_on:
       - db
-      - ollama
+    environment:
+      - OLLAMA_API_URL=http://host.docker.internal:11434/api/generate
 
   db:
     image: postgres:15
@@ -25,15 +26,7 @@ services:
     ports:
       - "5432:5432"
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    command: pull llama3
 volumes:
   postgres_data:
   static_volume:
   media_volume:
-  ollama_data:

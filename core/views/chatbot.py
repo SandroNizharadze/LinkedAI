@@ -12,7 +12,8 @@ import os
 
 logger = logging.getLogger(__name__)
 
-OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'http://ollama:11434/api/generate')
+# Update to connect to local Ollama instance on host machine if running in Docker
+OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'http://host.docker.internal:11434/api/generate')
 
 def find_and_link_job(job_title):
     """Helper function to find a job by title and create a link to it."""
@@ -293,7 +294,7 @@ Remember: Be conversational, not overly formal, and do not mention the user's na
                     'prompt': prompt,
                     'stream': False
                 },
-                timeout=15
+                timeout=60
             )
             logger.debug(f"Ollama response status: {ollama_response.status_code}")
             raw_response = ollama_response.json().get('response', "Sorry, I couldn't process that.")

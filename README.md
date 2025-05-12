@@ -29,51 +29,12 @@ LinkedAI is a modern job platform that leverages artificial intelligence to conn
 - **Frontend**: HTML, CSS, JavaScript, Bootstrap 5
 - **Database**: PostgreSQL
 - **Authentication**: Django's built-in authentication + Google OAuth2
-- **AI Integration**: Custom AI chatbot for career guidance (llama3)
+- **AI Integration**: Custom AI chatbot for career guidance (supports both Llama2 and Llama3)
+- **Containerization**: Docker and Docker Compose
 
-## AI Setup
+## Local vs Docker Installation
 
-The project uses llama3 for AI-powered features. Here's how to set it up:
-
-### Prerequisites
-- [Ollama](https://ollama.ai/) installed on your system
-- At least 8GB of RAM (16GB recommended)
-
-### Installation Steps
-
-1. Install Ollama:
-```bash
-brew install ollama
-```
-
-2. Pull the llama3 model:
-```bash
-ollama pull llama3
-```
-
-3. Start the Ollama service:
-```bash
-ollama serve
-```
-
-
- Test the AI integration:
-- Start your Django development server
-- Log in to the application
-- Navigate to the AI Chat feature
-- Try sending a message to verify the AI is responding
-
-
-### AI Features
-
-The AI integration provides:
-- Career guidance and advice
-- Job matching based on user profiles
-- Resume analysis and suggestions
-- Interview preparation tips
-- Industry insights and trends
-
-## Installation
+### Local Installation
 
 1. Clone the repository:
 ```bash
@@ -117,6 +78,100 @@ GOOGLE_OAUTH2_SECRET=your_google_oauth2_secret
 python manage.py runserver
 ```
 
+### Docker Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/SandroNizharadze/LinkedAI.git
+cd LinkedAI
+```
+
+2. Create a `.env` file with the necessary environment variables:
+```
+DEBUG=True
+SECRET_KEY=your_secret_key
+DB_NAME=linked_ai_db
+DB_USER=postgres
+DB_PASSWORD=postgres
+GOOGLE_OAUTH2_KEY=your_google_oauth2_key
+GOOGLE_OAUTH2_SECRET=your_google_oauth2_secret
+```
+
+3. Start the Ollama service locally (see AI Setup section below)
+
+4. Build and start the Docker containers:
+```bash
+docker-compose up -d
+```
+
+5. Create a superuser:
+```bash
+docker-compose exec web python manage.py createsuperuser
+```
+
+6. Access the application at http://localhost:8000
+
+## AI Setup
+
+The project uses Llama models for AI-powered features. Due to performance considerations, it's recommended to run Ollama locally instead of within Docker to take advantage of GPU acceleration.
+
+### Prerequisites
+- [Ollama](https://ollama.ai/) installed on your system
+- At least 8GB of RAM (16GB recommended)
+- GPU with CUDA support (recommended for Llama3)
+
+### Ollama Installation
+
+1. Install Ollama:
+```bash
+# macOS
+brew install ollama
+
+# Linux
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Windows
+# Download from https://ollama.com/download
+```
+
+2. Pull the Llama model (choose one based on your hardware capabilities):
+```bash
+# For systems with powerful GPUs
+ollama pull llama3
+
+# For less powerful machine
+ollama pull llama2
+
+```
+
+3. Start the Ollama service:
+```bash
+ollama serve
+```
+
+### Why Ollama Runs Locally?
+
+I've designed the application to use a locally running Ollama instance instead of containerizing it for the following reasons:
+
+ **GPU Acceleration**: Docker has limitations accessing GPU resources (I'm using MacOs)
+ **Resource Usage**: Running LLMs in Docker with CPU-only is extremely slow and memory-intensive
+
+The web application container is configured to connect to your local Ollama instance through `host.docker.internal`.
+
+### Modifying the LLM Model
+
+To switch between Llama2 and Llama3 models:
+
+1. Edit the `core/views/chatbot.py` file and change the model parameter:
+```python
+# For Llama3
+'model': 'llama3',
+
+# For Llama2
+'model': 'llama2',
+```
+
+2. Restart the application after changing the model
 
 ## Key Features Implementation
 
