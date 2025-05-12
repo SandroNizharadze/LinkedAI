@@ -8,8 +8,11 @@ from django.utils.safestring import mark_safe
 from ..models import JobListing, UserProfile
 import uuid
 from datetime import datetime
+import os
 
 logger = logging.getLogger(__name__)
+
+OLLAMA_API_URL = os.environ.get('OLLAMA_API_URL', 'http://ollama:11434/api/generate')
 
 def find_and_link_job(job_title):
     """Helper function to find a job by title and create a link to it."""
@@ -284,7 +287,7 @@ Available jobs (always use exact spelling and include these in <span class="job-
 Remember: Be conversational, not overly formal, and do not mention the user's name after the first response."""
 
             ollama_response = requests.post(
-                'http://localhost:11434/api/generate',
+                OLLAMA_API_URL,
                 json={
                     'model': 'llama3',
                     'prompt': prompt,
