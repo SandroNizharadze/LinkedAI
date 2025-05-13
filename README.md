@@ -41,29 +41,7 @@ git clone https://github.com/SandroNizharadze/LinkedAI.git
 cd LinkedAI
 ```
 
-2. Create and activate a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  
-```
-
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-4. Set up the database:
-```bash
-python manage.py migrate
-```
-
-5. Create a superuser:
-```bash
-python manage.py createsuperuser
-```
-
-6. Configure environment variables:
-Create a `.env` file in the project root with the following variables:
+2. Create a `.env` file with the necessary environment variables:
 ```
 # Django settings
 SECRET_KEY = 'django-insecure-3!rk4uta2qj@xis7_^sv8u=34*pd$-%b3&!fd)inbbvd5$a*$z'
@@ -79,13 +57,22 @@ DB_PASSWORD=postgres
 # Google OAuth2
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=1065271937286-2fd5r8r6hc3ad6u9ovo3qu43lvf0fu90.apps.googleusercontent.com
 SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=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
+
 ```
 
-7. Run the development server:
+3. Start the Ollama service locally (see AI Setup section below)
+
+4. Build and start the Docker containers:
 ```bash
-python manage.py runserver
+docker-compose up -d
 ```
 
+5. Create a superuser:
+```bash
+docker-compose exec web python manage.py createsuperuser
+```
+
+6. Access the application at http://localhost:8000
 
 ## AI Setup
 
@@ -185,7 +172,6 @@ To switch between Llama2 and Llama3 models:
 
 
 <img width="1053" alt="image" src="https://github.com/user-attachments/assets/2cba8697-8b99-4509-a048-f3499b94f5b4" />
-
 
 
 
