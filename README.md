@@ -43,13 +43,21 @@ cd LinkedAI
 
 2. Create a `.env` file with the necessary environment variables:
 ```
+# Django settings
+SECRET_KEY = 'django-insecure-3!rk4uta2qj@xis7_^sv8u=34*pd$-%b3&!fd)inbbvd5$a*$z'
 DEBUG=True
-SECRET_KEY=your_secret_key
+
+# Database settings (for use with dj-database-url or similar)
+DATABASE_URL=postgres://admin:postgres@localhost:5432/linked_ai_db
+
 DB_NAME=linked_ai_db
-DB_USER=postgres
+DB_USER=admin  
 DB_PASSWORD=postgres
-GOOGLE_OAUTH2_KEY=your_google_oauth2_key
-GOOGLE_OAUTH2_SECRET=your_google_oauth2_secret
+
+# Google OAuth2
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=1065271937286-2fd5r8r6hc3ad6u9ovo3qu43lvf0fu90.apps.googleusercontent.com
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=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
+
 ```
 
 3. Start the Ollama service locally (see AI Setup section below)
